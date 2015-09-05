@@ -18,3 +18,9 @@ indexes:
   - name: wgs84
   - name: name
   - name: type
+
+- kind: SensorData
+  properties:
+  - name: sensor_id
+  - name: added
+    direction: desc
