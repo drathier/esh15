@@ -1,0 +1,20 @@
+indexes:
+
+- kind: SensorData
+  properties:
+  - name: sensor_id
+  - name: added
+
+- kind: Sensor
+  properties:
+  - name: sensor_id
+  - name: wgs84
+  - name: name
+  - name: type
+
+- kind: Sensor
+  properties:
+  - name: sensor_id
+  - name: wgs84
+  - name: name
+  - name: type

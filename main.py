@@ -20,8 +20,11 @@ import logging
 
 import webapp2
 from google.appengine.api import channel
-from jinja2 import Environment, PackageLoader
 
+from jinja2 import Environment, PackageLoader
+from odb.sensor import Sensor
+
+from odb.sensor_data import SensorData
 from odb.user import User
 
 env = Environment(loader=PackageLoader('frontend', 'templates'))
@@ -33,31 +36,38 @@ def jsonify(d):
 
 class PostHandler(webapp2.RequestHandler):
     def get(self):
-        self.response.write('Hello world!')
+        d = self.request.GET
+        sensor_id = d["sensor_id"]
+        raw = d["value"]
+        data = SensorData(sensor_id=sensor_id, raw=raw)
+        data.put()
+
+        self.response.write('Saved {0}'.format(data.to_dict()))
 
 
-class ConnectUserHandler(webapp2.RequestHandler):
-    def post(self):
-        # self.response.write('Hello world!')
-        req = self.request.params
+class FetchSensorData(webapp2.RequestHandler):
+    def get(self):
+        d = self.request.GET
 
-        minutes_per_day = 1440
-        ch_token = channel.create_channel(req["userid"], minutes_per_day)
+        if 'n' in d:
+            n = int(d['n'])
+        else:
+            n = None
 
-        u = User(
-            userid=req["userid"],
-            emails=req["emails"].split(";"),
-            ch_token=ch_token,
-        )
-        u.put()
-
-        logging.info("created new user `{0}`".format(u))
+        res = SensorData.last_n(d["sid"], n)
 
         # write response
         self.response.content_type = "application/json"
-        self.response.write(jsonify({
-            "ch_token": ch_token,
-        }))
+        self.response.write(jsonify([x.json() for x in res]))
+
+
+class FetchSensorList(webapp2.RequestHandler):
+    def get(self):
+        res = Sensor.all()
+
+        # write response
+        self.response.content_type = "application/json"
+        self.response.write(jsonify([x.json() for x in res]))
 
 
 class RouteUserHandler(webapp2.RequestHandler):
@@ -98,8 +108,10 @@ class RegistrationHandler(webapp2.RequestHandler):
 app = webapp2.WSGIApplication(
     [
         ('/post', PostHandler),
+        ('/sensor', FetchSensorData),  # get all sensor data
+        ('/sensor_list', FetchSensorList),  # get list of all sensors
+
         ('/register', RegistrationHandler),  # first time user connect; this is who I am
-        ('/router/get_token', ConnectUserHandler),  # user needs new token for a new socket
         ('/router/post', RouteUserHandler),  # send a new message
     ], debug=True
 )
