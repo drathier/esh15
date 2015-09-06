@@ -17,6 +17,7 @@
 
 import json
 import logging
+from tsp import tsp
 from datetime import datetime
 
 import webapp2
@@ -65,6 +66,22 @@ class FetchSensorData(webapp2.RequestHandler):
         self.response.write(jsonify([x.json() for x in res]))
 
 
+class FetchHoursSensorData(webapp2.RequestHandler):
+    def get(self):
+        d = self.request.GET
+
+        if 'n' in d:
+            n = int(d['n'])
+        else:
+            n = None
+
+        res = SensorData.last_n_by_hours(d["sid"], n, False)
+
+        # write response
+        self.response.content_type = "application/json"
+        self.response.write(jsonify([x.json() for x in res]))
+
+
 class FetchGeoJsonList(webapp2.RequestHandler):
     def get(self):
         res = SensorData.all_newest()
@@ -82,7 +99,8 @@ class FetchGeoJsonList(webapp2.RequestHandler):
         self.response.content_type = "application/json"
         self.response.write(jsonify(jsn))
 
-    def geojson(self, r):
+    @staticmethod
+    def geojson(r):
         sensor = r.sensor()
         logging.info("r {0}; sensor {1}".format(r, sensor))
         return {
@@ -170,10 +188,26 @@ class HoursSetHandler(webapp2.RequestHandler):
         self.response.write(s)
 
 
+class RouteHandler(webapp2.RequestHandler):
+    def get(self):
+        loc = self.request.GET['loc']
+        r, wps = tsp(loc)
+
+        logging.info("r {0}".format(r))
+
+        s = "/".join(r)
+
+        s = "https://www.google.com/maps/dir/" + s
+
+        self.response.write(s)
+
+
 app = webapp2.WSGIApplication(
     [
         ('/post', PostHandler),
+        ('/route', RouteHandler),
         ('/sensor', FetchSensorData),  # get all sensor data
+        ('/sensor/all', FetchHoursSensorData),  # get all sensor data
         ('/sensor_list', FetchSensorList),  # get list of all sensors
         ('/geojson', FetchGeoJsonList),  # get list of all sensors
         ('/', MapViewHandler),  # map of all sensors

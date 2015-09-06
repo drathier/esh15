@@ -1,3 +1,4 @@
+from datetime import datetime
 from google.appengine.ext import ndb
 
 __author__ = 'drathier'
@@ -23,6 +24,8 @@ class Sensor(ndb.Model):
             d['wgs84'] = "{0}, {1}".format(self.wgs84.lon, self.wgs84.lat)
         d["url"] = "/sensor?sid={0}".format(self.sensor_id)
         d["chart_url"] = "/chart?sensor={0}".format(self.sensor_id)
+
+        d["hours"] = ["{0}:{1}".format(x.hour, x.minute) for x in d["hours"]]
         return d
 
     @classmethod

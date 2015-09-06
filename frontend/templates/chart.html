@@ -33,7 +33,7 @@
 			data.addColumn('number', 'value');
 
 			$.ajax({
-				url: "/sensor{% if hours %}/hours{% endif %}?sid={{ sensor }}" ,
+				url: "/sensor{% if hours %}/all{% endif %}?sid={{ sensor }}" ,
 				success: jsonCallback
 			});
 		}
