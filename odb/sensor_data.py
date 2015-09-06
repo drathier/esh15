@@ -43,21 +43,23 @@ class SensorData(ndb.Model):
 
         return SensorData.query(*[start < SensorData.lastmod < stop for start, stop in hours])
 
+    @staticmethod
+    def opening_hour_pairs(sensor):
+        hours = []
+        pair = []
+        for hour in sensor.hours:
+            pair += [hour]
+            if len(pair) > 1:
+                hours += [pair]
+                pair = []
+        return hours
+
     @classmethod
     def last_n_by_hours(cls, sid, limit=None, check_hours=True):
         sensor = Sensor.query(Sensor.sensor_id == sid).fetch(1)[0]
         if not sensor.hours:
             return cls.last_n(sid, limit)
-        hours = []
-        pair = []
-        for hour in sensor.hours:
-            logging.info("pair {0}; hours {1}".format(pair, check_hours))
-            pair += [hour]
-            if len(pair) > 1:
-                hours += [pair]
-                pair = []
-
-        logging.info("done; pair {0}; hours {1}".format(pair, check_hours))
+        hours = SensorData.opening_hour_pairs(sensor)
         logging.info(sensor.hours)
 
         def ok_hour(sd):
@@ -125,7 +127,12 @@ class SensorData(ndb.Model):
     @classmethod
     def all_newest(cls):
         ids = [s.sensor_id for s in Sensor.all()]
-        return [SensorData.query(SensorData.sensor_id == i).order(-SensorData.added).fetch(1)[0] for i in ids]
+        ret = []
+        for i in ids:
+            s = SensorData.query(SensorData.sensor_id == i).order(-SensorData.added).fetch(1)
+            if s:
+                ret.append(s[0])
+        return ret
 
     @classmethod
     def all_newest_both(cls):
@@ -136,11 +143,11 @@ class SensorData(ndb.Model):
     def color(self):
         sensor = Sensor.query(Sensor.sensor_id == self.sensor_id).fetch(1)[0]
         if sensor.type == Sensor.DISTANCE:
-            if self.value > 25:
+            if self.value > 8:
                 return 'red'
-            elif self.value > 15:
+            elif self.value > 7:
                 return 'orange'
-            elif self.value > 10:
+            elif self.value > 6:
                 return 'gold'
             else:
                 return 'green'
@@ -153,3 +160,32 @@ class SensorData(ndb.Model):
         d["added"] = datetime.isoformat(d["added"], 'T')
         d["lastmod"] = datetime.isoformat(d["lastmod"], 'T')
         return d
+
+    def estValue(self, sensor):
+        hours = SensorData.opening_hour_pairs(sensor)
+        tnow = datetime.now()
+
+        def isOpenAt(t):
+            for start, stop in hours:
+                if start < t < stop:
+                    return True
+            return False
+
+        def opensAt():
+            """ False = no opening hours found. True = is open now. Datetime = opens at. """
+            t = datetime.now()
+            t = time(hour=t.hour, minute=t.minute, second=t.second)
+            for start, stop in hours:
+                if start < t < stop:
+                    return True
+                if t < start:
+                    return start
+            return False
+
+        opens = opensAt()
+        if type(opens) in (time, datetime):
+            return self.value / ((opens - tnow).hour - 1)
+        elif opens is True:
+            return self.value
+
+        return self.value

@@ -27,7 +27,7 @@ def maps(places):
 def tsp(curr_loc):
     res = SensorData.all_newest_both()
 
-    res = sorted(res, key=lambda a: a[1].value)
+    res = sorted(res, key=lambda a: a[1].estValue(a[0]))
 
     res = res[:8]
 

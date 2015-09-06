@@ -157,8 +157,21 @@ class RouteUserHandler(webapp2.RequestHandler):
 
 class MapViewHandler(webapp2.RequestHandler):
     def get(self):
+
+        if 'loc' not in self.request.GET:
+            loc = '58.394276, 15.555997'
+        else:
+            loc = self.request.GET['loc']
+        r, wps = tsp(loc)
+
+        logging.info("r {0}".format(r))
+
+        s = "/".join(r)
+
+        s = "https://www.google.com/maps/dir/" + s
+
         template = env.get_template('map.html')
-        self.response.write(template.render())
+        self.response.write(template.render(route_url=s))
 
 
 class ChartViewHandler(webapp2.RequestHandler):
@@ -199,7 +212,7 @@ class RouteHandler(webapp2.RequestHandler):
 
         s = "https://www.google.com/maps/dir/" + s
 
-        self.response.write(s)
+        self.response.write('<a href="{0}">{0}</a>'.format(s))
 
 
 app = webapp2.WSGIApplication(
