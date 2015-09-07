@@ -159,7 +159,7 @@ class MapViewHandler(webapp2.RequestHandler):
     def get(self):
 
         if 'loc' not in self.request.GET:
-            loc = '58.394276, 15.555997'
+            loc = '58.394146, 15.555303'
         else:
             loc = self.request.GET['loc']
         r, wps = tsp(loc)
